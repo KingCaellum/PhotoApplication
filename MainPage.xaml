@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<TabbedPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:local="clr-namespace:PhotoApplication.MVVM.Views"
+            xmlns:views="clr-namespace:PhotoApplication.MVVM.Views"
+            x:Class="PhotoApplication.MainPage"
+            BarBackgroundColor="#5AD7B6"
+            SelectedTabColor="White"
+            NavigationPage.HasNavigationBar="False"
+            UnselectedTabColor="#5B9C8C"
+            xmlns:android="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific;assembly=Microsoft.Maui.Controls"
+            android:TabbedPage.OffscreenPageLimit="2"
+            android:TabbedPage.IsSwipePagingEnabled="False">
+
+    <TabbedPage.Children>
+        <NavigationPage Title="Home" IconImageSource="homes.png">
+            <x:Arguments>
+                <views:HomePage />
+            </x:Arguments>
+        </NavigationPage>
+
+        <NavigationPage Title="Shop" IconImageSource="shopcart.png">
+            <x:Arguments>
+                <views:ShopPage />
+            </x:Arguments>
+        </NavigationPage>
+
+        <NavigationPage Title="Profile" IconImageSource="user.png">
+            <x:Arguments>
+                <views:ProfilePage />
+            </x:Arguments>
+        </NavigationPage>
+
+    </TabbedPage.Children>
+
+</TabbedPage>
