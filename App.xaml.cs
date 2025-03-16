@@ -1,40 +1,27 @@
-﻿using PhotoApplication.MVVM.Views;
-using PhotoApplication;
-using Microsoft.Maui.Storage;
-using System.Threading.Tasks;
-using PhotoApplication.Services;
+﻿using PhotoApplication.Services;
+using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using System.IO;
+using PhotoApplication.MVVM.Views;
 
 namespace PhotoApplication
 {
     public partial class App : Application
     {
+        public static DatabaseService DatabaseService { get; private set; }
+
         public App()
         {
             InitializeComponent();
 
-            // Start de database-initialisatie asynchroon zonder de UI te blokkeren.
+            // Set up the database service with a path in the app's data directory
+            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "PhotoApp.db3");
+            DatabaseService = new DatabaseService(dbPath);
+            // Initialize the database (consider handling this asynchronously in production)
+            DatabaseService.InitializeDatabaseAsync();
+
+            // Wrap the LoginPage in a NavigationPage
             MainPage = new NavigationPage(new LoginPage());
-
-            // We wachten hier niet op de database-initialisatie, maar zorgen ervoor dat deze in de achtergrond gebeurt.
-            InitializeDatabaseAsync();
-        }
-
-        private async Task InitializeDatabaseAsync()
-        {
-            // Wacht asynchroon op de database-initialisatie.
-            await DatabaseService.InitializeDatabaseAsync();
-
-            // Als de gebruiker al is ingelogd, stel de juiste pagina in
-            var userId = await SecureStorage.Default.GetAsync("userId");
-
-            if (!string.IsNullOrEmpty(userId))
-            {
-                MainPage = new NavigationPage(new MainPage());
-            }
-            else
-            {
-                MainPage = new NavigationPage(new LoginPage());
-            }
         }
     }
 }

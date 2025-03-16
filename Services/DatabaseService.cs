@@ -1,7 +1,5 @@
-﻿using PhotoApplication.MVVM.Models;
-using SQLite;
-using System;
-using System.Collections.Generic;
+﻿using SQLite;
+using PhotoApplication.MVVM.Models;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -9,73 +7,68 @@ namespace PhotoApplication.Services
 {
     public class DatabaseService
     {
-        private static SQLiteAsyncConnection _database;
+        private readonly SQLiteAsyncConnection _connection;
 
-        public DatabaseService()
+        public DatabaseService(string dbPath)
         {
-            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "PhotoApp.db");
-            _database = new SQLiteAsyncConnection(dbPath);
+            _connection = new SQLiteAsyncConnection(dbPath);
         }
 
-        public static async Task InitializeDatabaseAsync()
+        public async Task InitializeDatabaseAsync()
         {
-            if (_database == null)
-            {
-                var dbPath = Path.Combine(FileSystem.AppDataDirectory, "PhotoApp.db");
-                _database = new SQLiteAsyncConnection(dbPath);
-            }
-
-            // Maak tabellen aan voor elk model
-            await _database.CreateTableAsync<User>();
-            await _database.CreateTableAsync<Comment>();
-            await _database.CreateTableAsync<Post>();
-            await _database.CreateTableAsync<Assignment>();
-            await _database.CreateTableAsync<Membership>();
-
-            // Voeg de standaard gebruikersrollen toe
-            await AddUserRolesAsync();
+            await _connection.CreateTableAsync<User>();
+            await _connection.CreateTableAsync<Assignment>();
+            await _connection.CreateTableAsync<Comment>();
+            await _connection.CreateTableAsync<Membership>();
+            await _connection.CreateTableAsync<Post>();
         }
 
-        private static async Task AddUserRolesAsync()
+        public async Task<int> AddUserAsync(User user)
         {
-            var existingUsers = await _database.Table<User>().ToListAsync();
-
-            if (existingUsers.Count == 0) // Controleer of er al gebruikers zijn
-            {
-                var roles = new List<User>
-                {
-                    new User { Email = "member@example.com", Username = "MemberUser", Password = "password", ProfilePicture = "defaultpfp.png", Role = "Member" },
-                    new User { Email = "supermember@example.com", Username = "SuperMemberUser", Password = "password", ProfilePicture = "defaultpfp.png", Role = "SuperMember" },
-                    new User { Email = "admin@example.com", Username = "AdminUser", Password = "password", ProfilePicture = "defaultpfp.png", Role = "Admin" }
-                };
-
-                await SaveAsync(roles);
-            }
+            return await _connection.InsertAsync(user);
         }
 
-        public static async Task<List<T>> GetAllAsync<T>() where T : new()
+        public async Task<User> GetUserByEmailAsync(string email)
         {
-            return await _database.Table<T>().ToListAsync();
+            return await _connection.Table<User>()
+                                    .Where(u => u.Email == email)
+                                    .FirstOrDefaultAsync();
         }
 
-        public static async Task<T> GetByIdAsync<T>(int id) where T : new()
+        public async Task<int> UpdateUserAsync(User user)
         {
-            return await _database.FindAsync<T>(id);
+            return await _connection.UpdateAsync(user);
         }
 
-        public static async Task<int> SaveAsync<T>(T entity)
+        // Haal alle records op voor een bepaald model
+        public async Task<List<T>> GetAllAsync<T>() where T : new()
         {
-            return await _database.InsertOrReplaceAsync(entity);
+            return await _connection.Table<T>().ToListAsync();
         }
 
-        public static async Task<int> InsertAsync<T>(T entity)
+        // Haal een record op via ID
+        public async Task<T> GetByIdAsync<T>(int id) where T : new()
         {
-            return await _database.InsertAsync(entity);
+            return await _connection.FindAsync<T>(id);
         }
 
-        public static async Task<int> DeleteAsync<T>(T entity)
+        // Opslaan of bijwerken van een record
+        public async Task<int> SaveAsync<T>(T entity)
         {
-            return await _database.DeleteAsync(entity);
+            return await _connection.InsertOrReplaceAsync(entity);
         }
+
+        // Insert een nieuw record
+        public async Task<int> InsertAsync<T>(T entity)
+        {
+            return await _connection.InsertAsync(entity);
+        }
+
+        // Verwijder een record
+        public async Task<int> DeleteAsync<T>(T entity)
+        {
+            return await _connection.DeleteAsync(entity);
+        }
+
     }
 }

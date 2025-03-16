@@ -1,90 +1,69 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
-using PhotoApplication.Services;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using PhotoApplication.MVVM.Models;
-using PhotoApplication;
-using Microsoft.Maui.Storage;
-using PhotoApplication.MVVM.ViewModels;
-using System.Windows.Input;
+using PhotoApplication.Services;
 using PhotoApplication.MVVM.Views;
+using System;
+using System.Threading.Tasks;
 
 namespace PhotoApplication.MVVM.ViewModels
 {
-    public class LoginViewModel : BaseViewModel
+    public class LoginViewModel : ObservableObject
     {
-        private readonly DatabaseService _databaseService;
+        private readonly DatabaseService _dbService;
 
-        private string _email;
-        private string _password;
+        public LoginViewModel(DatabaseService dbService)
+        {
+            _dbService = dbService;
+            LoginCommand = new AsyncRelayCommand(LoginAsync);
+            NavigateToRegisterCommand = new RelayCommand(() =>
+            {
+                // Navigate to the RegisterPage using NavigationPage
+                Application.Current.MainPage.Navigation.PushAsync(new RegisterPage());
+            });
+        }
 
+        private string email;
         public string Email
         {
-            get => _email;
-            set { _email = value; OnPropertyChanged(); }
+            get => email;
+            set => SetProperty(ref email, value);
         }
 
+        private string password;
         public string Password
         {
-            get => _password;
-            set { _password = value; OnPropertyChanged(); }
+            get => password;
+            set => SetProperty(ref password, value);
         }
 
-        public ICommand LoginCommand { get; }
-        //public ICommand RegisterCommand { get; }
-        //public ICommand ForgotPasswordEmailCommand { get; }
+        public IAsyncRelayCommand LoginCommand { get; }
+        public IRelayCommand NavigateToRegisterCommand { get; }
 
-        public LoginViewModel()
+        private async Task LoginAsync()
         {
-            _databaseService = new DatabaseService();
-            LoginCommand = new Command(async () => await Login());
-            //RegisterCommand = new Command(async () => await Register());
-            //ForgotPasswordEmailCommand = new Command(async () => await ForgotPasswordEmail());
-        }
-
-
-        private async Task Login()
-        {
-            var users = await _databaseService.GetAllAsync<User>();
-            Console.WriteLine($"Aantal gebruikers in database: {users.Count}");
-
-            var foundUser = users.FirstOrDefault(u => u.Email == Email);
-            if (foundUser == null)
+            try
             {
-                Console.WriteLine("❌ Geen gebruiker gevonden met dit e-mailadres.");
-                await App.Current.MainPage.DisplayAlert("Login Mislukt", "E-mailadres bestaat niet.", "OK");
-                return;
+                var user = await _dbService.GetUserByEmailAsync(Email);
+                if (user == null)
+                {
+                    await Application.Current.MainPage.DisplayAlert("Error", "User not found", "OK");
+                    return;
+                }
+                if (user.Password != Password)
+                {
+                    await Application.Current.MainPage.DisplayAlert("Error", "Invalid credentials", "OK");
+                    return;
+                }
+                // Login successful
+                await Application.Current.MainPage.DisplayAlert("Success", "Login successful", "OK");
+                // Navigate to MainPage (replace with your actual main page)
+                await Application.Current.MainPage.Navigation.PushAsync(new MainPage());
             }
-
-            if (foundUser.Password != Password)
+            catch (Exception ex)
             {
-                Console.WriteLine("❌ Onjuist wachtwoord.");
-                await App.Current.MainPage.DisplayAlert("Login Mislukt", "Onjuist wachtwoord.", "OK");
-                return;
+                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
             }
-
-            Console.WriteLine($"✅ Inloggen geslaagd! Welkom {foundUser.Username}");
-
-            await SecureStorage.SetAsync("LoggedInUserId", foundUser.Id.ToString());
-            await SecureStorage.SetAsync("LoggedInUser", foundUser.Username);
-
-            App.Current.MainPage = new MainPage();
         }
-
-
-
-        /*
-        private async Task Register()
-        {
-            App.Current.MainPage = new RegisterPage();
-        }
-
-        private async Task ForgotPasswordEmail()
-        {
-            App.Current.MainPage = new ResetPasswordEmailPage();
-        }*/
     }
 }
